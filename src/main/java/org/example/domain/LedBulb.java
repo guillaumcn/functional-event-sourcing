@@ -22,16 +22,16 @@ public class LedBulb implements Bulb {
 
     @Override
     public void switchOn() {
-        state = switchState(state, true);
+        state = switchState(state, BulbCommand.SWITCH_ON);
     }
 
     @Override
     public void switchOff() {
-        state = switchState(state, false);
+        state = switchState(state, BulbCommand.SWITCH_OFF);
     }
 
-    public BulbState switchState(BulbState state, boolean on) {
-        if (on) {
+    public BulbState switchState(BulbState state, BulbCommand command) {
+        if (BulbCommand.SWITCH_ON.equals(command)) {
             if (!state.broken() && !state.on()) {
                 if (state.remainingUses() == 0) {
                     return new BulbState(false, true, 0);
