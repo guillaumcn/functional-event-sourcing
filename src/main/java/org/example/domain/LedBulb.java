@@ -21,11 +21,20 @@ public class LedBulb implements Bulb {
 
     @Override
     public void switchOn() {
-
+        if (!this.broken && !this.on) {
+            if (this.remainingUses == 0) {
+                this.broken = true;
+            } else {
+                this.on = true;
+                this.remainingUses--;
+            }
+        }
     }
 
     @Override
     public void switchOff() {
-
+        if (!this.broken && this.on) {
+            this.on = false;
+        }
     }
 }
