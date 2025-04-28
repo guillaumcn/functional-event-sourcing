@@ -31,20 +31,27 @@ public class LedBulb implements Bulb {
     }
 
     public BulbState switchState(BulbState state, BulbCommand command) {
+        var event = BulbEvent.NO_EVENT;
         if (BulbCommand.SWITCH_ON.equals(command)) {
             if (!state.broken() && !state.on()) {
                 if (state.remainingUses() == 0) {
-                    return new BulbState(false, true, 0);
+                    event = BulbEvent.BROKE;
                 } else {
-                    return new BulbState(true, false, state.remainingUses() - 1);
+                    event = BulbEvent.SWITCHED_ON;
                 }
             }
         } else {
             if (!state.broken() && state.on()) {
-                return new BulbState(false, false, state.remainingUses());
+                event = BulbEvent.SWITCHED_OFF;
             }
         }
-        return new BulbState(state.on(), state.broken(), state.remainingUses());
+
+        return switch (event) {
+            case BROKE -> new BulbState(false, true, 0);
+            case SWITCHED_ON -> new BulbState(true, false, state.remainingUses() - 1);
+            case SWITCHED_OFF -> new BulbState(false, false, state.remainingUses());
+            default -> new BulbState(state.on(), state.broken(), state.remainingUses());
+        };
     }
 
     @Override
