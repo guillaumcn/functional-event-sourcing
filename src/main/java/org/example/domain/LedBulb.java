@@ -3,6 +3,9 @@ package org.example.domain;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.Collections;
+import java.util.List;
+
 @AllArgsConstructor
 @Getter
 public class LedBulb implements Bulb {
@@ -31,26 +34,25 @@ public class LedBulb implements Bulb {
     }
 
     public BulbState switchState(BulbState state, BulbCommand command) {
-        var event = decide(state, command);
-        return evolve(state, event);
+        var events = decide(state, command);
+        return evolveAll(state, events);
     }
 
-    private static BulbEvent decide(BulbState state, BulbCommand command) {
-        var event = BulbEvent.NO_EVENT;
+    private static List<BulbEvent> decide(BulbState state, BulbCommand command) {
         if (BulbCommand.SWITCH_ON.equals(command)) {
             if (!state.broken() && !state.on()) {
                 if (state.remainingUses() == 0) {
-                    event = BulbEvent.BROKE;
+                    return List.of(BulbEvent.BROKE);
                 } else {
-                    event = BulbEvent.SWITCHED_ON;
+                    return List.of(BulbEvent.SWITCHED_ON);
                 }
             }
         } else {
             if (!state.broken() && state.on()) {
-                event = BulbEvent.SWITCHED_OFF;
+                return List.of(BulbEvent.SWITCHED_OFF);
             }
         }
-        return event;
+        return Collections.emptyList();
     }
 
     private static BulbState evolve(BulbState state, BulbEvent event) {
@@ -58,8 +60,15 @@ public class LedBulb implements Bulb {
             case BROKE -> new BulbState(false, true, 0);
             case SWITCHED_ON -> new BulbState(true, false, state.remainingUses() - 1);
             case SWITCHED_OFF -> new BulbState(false, false, state.remainingUses());
-            default -> new BulbState(state.on(), state.broken(), state.remainingUses());
         };
+    }
+
+    private static BulbState evolveAll(BulbState initialState, List<BulbEvent> events) {
+        var state = new BulbState(initialState.on(), initialState.broken(), initialState.remainingUses());
+        for (BulbEvent event : events) {
+            state = evolve(state, event);
+        }
+        return state;
     }
 
     @Override
