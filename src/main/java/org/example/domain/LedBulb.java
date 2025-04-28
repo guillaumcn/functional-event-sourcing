@@ -31,6 +31,11 @@ public class LedBulb implements Bulb {
     }
 
     public BulbState switchState(BulbState state, BulbCommand command) {
+        var event = decide(state, command);
+        return evolve(state, event);
+    }
+
+    private static BulbEvent decide(BulbState state, BulbCommand command) {
         var event = BulbEvent.NO_EVENT;
         if (BulbCommand.SWITCH_ON.equals(command)) {
             if (!state.broken() && !state.on()) {
@@ -45,7 +50,10 @@ public class LedBulb implements Bulb {
                 event = BulbEvent.SWITCHED_OFF;
             }
         }
+        return event;
+    }
 
+    private static BulbState evolve(BulbState state, BulbEvent event) {
         return switch (event) {
             case BROKE -> new BulbState(false, true, 0);
             case SWITCHED_ON -> new BulbState(true, false, state.remainingUses() - 1);
