@@ -1,8 +1,14 @@
 package org.example.domain;
 
 import lombok.Builder;
+import org.example.domain.command.AccountCommand;
 import org.example.domain.command.UpdateBalanceCommand;
 import org.example.domain.enumeration.AccountStatus;
+import org.example.domain.event.AccountClosedEvent;
+import org.example.domain.event.AccountEvent;
+import org.example.domain.event.AccountSuspendedEvent;
+import org.example.domain.event.AccountUnsuspendedEvent;
+import org.example.domain.event.NoEvent;
 import org.example.domain.exception.AccountClosedException;
 
 import java.math.BigDecimal;
@@ -32,15 +38,35 @@ public class Account {
     public void handleCommand(UpdateBalanceCommand updateBalanceCommand) {
         assertIsNotClosed();
         this.state = state.addToBalance(updateBalanceCommand.amount());
-        if (balanceIsLowerEqualsThan(SUSPENSION_THRESHOLD) && !state.isSuspended()) {
-            this.state = state.suspend();
+
+        AccountEvent event = decide(state, updateBalanceCommand);
+        this.state = evolve(state, event);
+    }
+
+    private AccountEvent decide(AccountState state, AccountCommand accountCommand) {
+        // PB1 : SUSPENDED event, can be overridden by CLOSED event, maybe I need to have the SUSPENDED information too
+        AccountEvent event = new NoEvent();
+
+        var mustBeSuspended = balanceIsLowerEqualsThan(SUSPENSION_THRESHOLD) && !state.isSuspended();
+        if (mustBeSuspended) {
+            event = new AccountSuspendedEvent();
         }
-        if (state.hasReachedSuspensionCount() || balanceIsLowerEqualsThan(CLOSING_THRESHOLD)) {
-            this.state = state.close();
+        if ((mustBeSuspended && state.hasReachedSuspensionCount()) || balanceIsLowerEqualsThan(CLOSING_THRESHOLD)) {
+            event = new AccountClosedEvent();
         }
         if (balanceIsGreaterThan(SUSPENSION_THRESHOLD) && state.isSuspended()) {
-            this.state = state.unsuspend();
+            event = new AccountUnsuspendedEvent();
         }
+        return event;
+    }
+
+    private AccountState evolve(AccountState initialState, AccountEvent event) {
+        return switch (event) {
+            case NoEvent ignored -> initialState;
+            case AccountSuspendedEvent ignored -> initialState.suspend();
+            case AccountClosedEvent ignored -> initialState.close();
+            case AccountUnsuspendedEvent ignored -> initialState.unsuspend();
+        };
     }
 
     public AccountStatus getStatus() {

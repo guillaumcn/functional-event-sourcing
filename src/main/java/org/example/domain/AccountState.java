@@ -20,7 +20,7 @@ public record AccountState(AccountStatus status, int remainingSuspensions, BigDe
     }
 
     public boolean hasReachedSuspensionCount() {
-        return remainingSuspensions < 0;
+        return remainingSuspensions == 0;
     }
 
     public AccountState unsuspend() {
