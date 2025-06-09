@@ -1,13 +1,16 @@
 package org.example.domain;
 
 import lombok.Builder;
-import org.example.domain.command.AccountCommand;
 import org.example.domain.command.UpdateBalanceCommand;
+import org.example.domain.command.internal.EvaluateAccountStatusInternalCommand;
+import org.example.domain.command.internal.InternalAccountCommand;
+import org.example.domain.command.internal.UpdateBalanceInternalCommand;
 import org.example.domain.enumeration.AccountStatus;
 import org.example.domain.event.AccountClosedEvent;
 import org.example.domain.event.AccountEvent;
 import org.example.domain.event.AccountSuspendedEvent;
 import org.example.domain.event.AccountUnsuspendedEvent;
+import org.example.domain.event.BalanceUpdatedEvent;
 import org.example.domain.exception.AccountClosedException;
 
 import java.math.BigDecimal;
@@ -38,16 +41,21 @@ public class Account {
 
     public void handleCommand(UpdateBalanceCommand updateBalanceCommand) {
         assertIsNotClosed();
-        // PB2 : I want to add a balance updated event
-        this.state = state.addToBalance(updateBalanceCommand.amount());
-
-        var events = decide(state, updateBalanceCommand);
-        this.state = evolveAll(state, events);
+        updateBalanceCommand.getInternalCommands().forEach(internalCommand -> {
+            var events = decide(this.state, internalCommand);
+            this.state = evolveAll(state, events);
+        });
     }
 
-    private List<AccountEvent> decide(AccountState state, AccountCommand accountCommand) {
-        var events = new ArrayList<AccountEvent>();
+    private List<AccountEvent> decide(AccountState state, InternalAccountCommand internalAccountCommand) {
+        return switch (internalAccountCommand) {
+            case EvaluateAccountStatusInternalCommand ignored -> getEvaluateStatusEvents(state);
+            case UpdateBalanceInternalCommand updateBalanceInternalCommand -> List.of(new BalanceUpdatedEvent(updateBalanceInternalCommand.amount()));
+        };
+    }
 
+    private ArrayList<AccountEvent> getEvaluateStatusEvents(AccountState state) {
+        var events = new ArrayList<AccountEvent>();
         var mustBeSuspended = balanceIsLowerEqualsThan(SUSPENSION_THRESHOLD) && !state.isSuspended();
         if (mustBeSuspended) {
             events.add(new AccountSuspendedEvent());
@@ -70,6 +78,8 @@ public class Account {
             case AccountSuspendedEvent ignored -> initialState.suspend();
             case AccountClosedEvent ignored -> initialState.close();
             case AccountUnsuspendedEvent ignored -> initialState.unsuspend();
+            case BalanceUpdatedEvent balanceUpdatedEvent -> initialState.addToBalance(balanceUpdatedEvent.amount());
+
         };
     }
 

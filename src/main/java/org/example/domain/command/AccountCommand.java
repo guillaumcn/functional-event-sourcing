@@ -1,3 +1,10 @@
 package org.example.domain.command;
 
-public sealed interface AccountCommand permits UpdateBalanceCommand {}
+import org.example.domain.command.internal.InternalAccountCommand;
+
+import java.util.List;
+
+public sealed interface AccountCommand permits UpdateBalanceCommand {
+
+    List<InternalAccountCommand> getInternalCommands();
+}
