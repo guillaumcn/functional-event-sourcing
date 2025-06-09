@@ -13,58 +13,59 @@ public class Account {
     private static final int DEFAULT_MAX_SUSPENSION = 3;
     private static final BigDecimal INITIAL_BALANCE = BigDecimal.ZERO;
 
-    private AccountStatus status;
-    private int remainingSuspensions;
-    private BigDecimal balance;
+    private AccountState state;
 
     public Account() {
-        this.status = AccountStatus.BILLABLE;
-        this.remainingSuspensions = DEFAULT_MAX_SUSPENSION;
-        this.balance = INITIAL_BALANCE;
+        this.state = new AccountState(AccountStatus.BILLABLE, DEFAULT_MAX_SUSPENSION, INITIAL_BALANCE);
     }
 
     @Builder
     public Account(AccountStatus status, Integer remainingSuspensions, BigDecimal balance) {
-        this.status = status != null ? status : AccountStatus.BILLABLE;
-        this.remainingSuspensions = remainingSuspensions != null ? remainingSuspensions : DEFAULT_MAX_SUSPENSION;
-        this.balance = balance != null ? balance : INITIAL_BALANCE;
+        this.state = new AccountState(
+                status != null ? status : AccountStatus.BILLABLE,
+                remainingSuspensions != null ? remainingSuspensions : DEFAULT_MAX_SUSPENSION,
+                balance != null ? balance : INITIAL_BALANCE
+        );
     }
 
     public void updateBalance(BigDecimal amount) {
-        if (AccountStatus.CLOSED == status) {
-            throw new AccountClosedException();
+        assertIsNotClosed();
+        this.state = state.addToBalance(amount);
+        if (balanceIsLowerEqualsThan(SUSPENSION_THRESHOLD) && !state.isSuspended()) {
+            this.state = state.suspend();
         }
-        this.balance = balance.add(amount);
-        if (balanceIsLowerEqualsThan(SUSPENSION_THRESHOLD) && !AccountStatus.SUSPENDED.equals(status)) {
-            this.status = AccountStatus.SUSPENDED;
-            this.remainingSuspensions--;
+        if (state.hasReachedSuspensionCount() || balanceIsLowerEqualsThan(CLOSING_THRESHOLD)) {
+            this.state = state.close();
         }
-        if (remainingSuspensions < 0 || balanceIsLowerEqualsThan(CLOSING_THRESHOLD)) {
-            this.status = AccountStatus.CLOSED;
-        }
-        if (balanceIsGreaterThan(SUSPENSION_THRESHOLD) && AccountStatus.SUSPENDED == status) {
-            this.status = AccountStatus.BILLABLE;
+        if (balanceIsGreaterThan(SUSPENSION_THRESHOLD) && state.isSuspended()) {
+            this.state = state.unsuspend();
         }
     }
 
     public AccountStatus getStatus() {
-        return status;
+        return state.status();
     }
 
     public int getRemainingSuspensions() {
-        return remainingSuspensions;
+        return state.remainingSuspensions();
     }
 
     public BigDecimal getBalance() {
-        return balance;
+        return state.balance();
+    }
+
+    private void assertIsNotClosed() {
+        if (state.isClosed()) {
+            throw new AccountClosedException();
+        }
     }
 
     private boolean balanceIsLowerEqualsThan(BigDecimal value) {
-        return balance.compareTo(value) <= 0;
+        return state.balance().compareTo(value) <= 0;
     }
 
     private boolean balanceIsGreaterThan(BigDecimal value) {
-        return balance.compareTo(value) > 0;
+        return state.balance().compareTo(value) > 0;
     }
 
 }
