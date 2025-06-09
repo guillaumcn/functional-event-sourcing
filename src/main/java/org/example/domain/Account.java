@@ -1,6 +1,7 @@
 package org.example.domain;
 
 import lombok.Builder;
+import org.example.domain.command.UpdateBalanceCommand;
 import org.example.domain.enumeration.AccountStatus;
 import org.example.domain.exception.AccountClosedException;
 
@@ -28,9 +29,9 @@ public class Account {
         );
     }
 
-    public void updateBalance(BigDecimal amount) {
+    public void handleCommand(UpdateBalanceCommand updateBalanceCommand) {
         assertIsNotClosed();
-        this.state = state.addToBalance(amount);
+        this.state = state.addToBalance(updateBalanceCommand.amount());
         if (balanceIsLowerEqualsThan(SUSPENSION_THRESHOLD) && !state.isSuspended()) {
             this.state = state.suspend();
         }
@@ -67,5 +68,4 @@ public class Account {
     private boolean balanceIsGreaterThan(BigDecimal value) {
         return state.balance().compareTo(value) > 0;
     }
-
 }

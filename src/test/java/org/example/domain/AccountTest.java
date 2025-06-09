@@ -1,5 +1,6 @@
 package org.example.domain;
 
+import org.example.domain.command.UpdateBalanceCommand;
 import org.example.domain.enumeration.AccountStatus;
 import org.example.domain.exception.AccountClosedException;
 import org.junit.jupiter.api.Nested;
@@ -28,7 +29,7 @@ public class AccountTest {
             var account = Account.builder()
                                  .status(AccountStatus.CLOSED)
                                  .build();
-            assertThrows(AccountClosedException.class, () -> account.updateBalance(BigDecimal.TEN.negate()));
+            assertThrows(AccountClosedException.class, () -> account.handleCommand(new UpdateBalanceCommand(BigDecimal.TEN.negate())));
         }
 
         @Test
@@ -36,7 +37,7 @@ public class AccountTest {
             var account = Account.builder()
                                  .balance(BigDecimal.valueOf(20))
                                  .build();
-            account.updateBalance(BigDecimal.TEN.negate());
+            account.handleCommand(new UpdateBalanceCommand(BigDecimal.TEN.negate()));
             assertEquals(BigDecimal.TEN, account.getBalance());
         }
 
@@ -48,7 +49,7 @@ public class AccountTest {
                                  .balance(BigDecimal.valueOf(-90))
                                  .remainingSuspensions(currentSuspensionRemaining)
                                  .build();
-            account.updateBalance(BigDecimal.valueOf(20).negate());
+            account.handleCommand(new UpdateBalanceCommand(BigDecimal.valueOf(20).negate()));
             assertEquals(BigDecimal.valueOf(-110), account.getBalance());
             assertEquals(AccountStatus.SUSPENDED, account.getStatus());
             assertEquals(currentSuspensionRemaining, account.getRemainingSuspensions());
@@ -62,7 +63,7 @@ public class AccountTest {
                                  .balance(BigDecimal.valueOf(-90))
                                  .remainingSuspensions(currentSuspensionRemaining)
                                  .build();
-            account.updateBalance(BigDecimal.valueOf(20).negate());
+            account.handleCommand(new UpdateBalanceCommand(BigDecimal.valueOf(20).negate()));
             assertEquals(BigDecimal.valueOf(-110), account.getBalance());
             assertEquals(AccountStatus.SUSPENDED, account.getStatus());
             assertEquals(1, account.getRemainingSuspensions());
@@ -74,7 +75,7 @@ public class AccountTest {
                                  .status(AccountStatus.SUSPENDED)
                                  .balance(BigDecimal.valueOf(-450))
                                  .build();
-            account.updateBalance(BigDecimal.valueOf(60).negate());
+            account.handleCommand(new UpdateBalanceCommand(BigDecimal.valueOf(60).negate()));
             assertEquals(BigDecimal.valueOf(-510), account.getBalance());
             assertEquals(AccountStatus.CLOSED, account.getStatus());
         }
@@ -87,7 +88,7 @@ public class AccountTest {
                                  .balance(BigDecimal.valueOf(-90))
                                  .remainingSuspensions(currentSuspensionRemaining)
                                  .build();
-            account.updateBalance(BigDecimal.valueOf(20).negate());
+            account.handleCommand(new UpdateBalanceCommand(BigDecimal.valueOf(20).negate()));
             assertEquals(BigDecimal.valueOf(-110), account.getBalance());
             assertEquals(AccountStatus.CLOSED, account.getStatus());
         }
@@ -101,7 +102,7 @@ public class AccountTest {
             var account = Account.builder()
                                  .status(AccountStatus.CLOSED)
                                  .build();
-            assertThrows(AccountClosedException.class, () -> account.updateBalance(BigDecimal.TEN));
+            assertThrows(AccountClosedException.class, () -> account.handleCommand(new UpdateBalanceCommand(BigDecimal.TEN)));
         }
 
         @Test
@@ -110,7 +111,7 @@ public class AccountTest {
                                  .status(AccountStatus.BILLABLE)
                                  .balance(BigDecimal.valueOf(-20))
                                  .build();
-            account.updateBalance(BigDecimal.TEN);
+            account.handleCommand(new UpdateBalanceCommand(BigDecimal.TEN));
             assertEquals(AccountStatus.BILLABLE, account.getStatus());
             assertEquals(BigDecimal.valueOf(-10), account.getBalance());
         }
@@ -123,7 +124,7 @@ public class AccountTest {
                                  .remainingSuspensions(currentSuspensionRemaining)
                                  .balance(BigDecimal.valueOf(-110))
                                  .build();
-            account.updateBalance(BigDecimal.valueOf(20));
+            account.handleCommand(new UpdateBalanceCommand(BigDecimal.valueOf(20)));
             assertEquals(AccountStatus.BILLABLE, account.getStatus());
             assertEquals(BigDecimal.valueOf(-90), account.getBalance());
             assertEquals(currentSuspensionRemaining, account.getRemainingSuspensions());
