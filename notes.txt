@@ -1,0 +1,3 @@
+- prez event-sourcing/CQRS avant atelier
+- class qui permet de voir l'interet du evolveAll
+- explication potentiels problemes de prod (ordonnancement des events, performance...)
